@@ -1,12 +1,12 @@
 // create a custom design for a dataframe
 // +------+------+
-// |column|column/
+// |column|column|
 // +======+======+
 // | row  | row  |
 // +------+------+
 
 // Note: large files dataframes are not supported yet
-// if any cell contains a long String or Integer this may cause in a readability mess
+// 90% FIXED ==> if any cell contains a long String or Integer this may cause in a readability mess
 // more dataframe improvements will be implemented soon
 
 use super::DataFrame;
@@ -93,6 +93,6 @@ pub fn design(df: DataFrame<String, String>) {
     format.indent(indent);
 
     table.set_format(format);
-    let slice = table.slice(..200);
+    let slice = table.slice(..);
     slice.printstd()
 }

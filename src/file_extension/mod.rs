@@ -104,6 +104,40 @@ impl FileInfo {
         }
     }
 
+    //a simple way to avoid long cells which ends up extending the table and loses
+    //the readability of the columns.
+    //simply divide the row content by 10 `chars` separated by a Dash '-'
+    //and the print out the rest of the row
+    // Example => In a given row that contains "Wallpaper Engine Team"
+    // this row will be displayed at this format
+    //                                             +========================+
+    //      ======>                                |   Wallpaper Engine Te- |
+    //      ======>                                |            am          |
+    //                                             +------------------------+
+    fn responsive_row(row: &str) -> String {
+        let mut responsive_row: String = String::new();
+
+        if row.len() >= 35 {
+            let first_slice: String = row.chars().take(20).collect();
+            let second_slice: String = row.chars().skip(20).take(20).collect();
+            let third_slice: String = row.chars().skip(20).skip(20).collect();
+
+            responsive_row = format!("{}-\n{}-\n{}", first_slice, second_slice, third_slice)
+                .trim()
+                .to_string();
+        } else if row.len() >= 20 {
+            let first_slice: String = row.chars().take(20).collect();
+            let second_slice: String = row.chars().skip(20).collect();
+
+            responsive_row = format!("{}-\n{}", first_slice, second_slice)
+                .trim()
+                .to_string();
+        } else {
+            responsive_row = row.trim().to_string();
+        }
+        responsive_row.to_string()
+    }
+
     //TODO: improve error handling
     //read csv files
     pub fn read_csv(&self) -> Results {
@@ -127,7 +161,7 @@ impl FileInfo {
 
             //iterate through each enumerated row and assign each row to it's column
             for (i, row) in record.iter().enumerate() {
-                row_map.insert(columns[i].to_string(), row.to_string());
+                row_map.insert(columns[i].to_string(), Self::responsive_row(row));
             }
             rows.push(row_map);
         }
@@ -167,6 +201,7 @@ impl FileInfo {
                         iterate(val, prefix.to_string(), rows);
                     }
                 }
+
                 _ => {
                     let mut row_map: HashMap<String, String> = HashMap::new();
                     row_map.insert(prefix, value.to_string());
@@ -209,7 +244,10 @@ impl FileInfo {
             let mut rows_map: HashMap<String, String> = HashMap::new();
 
             for (i, cell) in row.iter().enumerate() {
-                rows_map.insert(columns[i].to_string(), cell.to_string());
+                rows_map.insert(
+                    columns[i].to_string(),
+                    Self::responsive_row(&cell.to_string()),
+                );
             }
             rows.push(rows_map);
         }
@@ -245,18 +283,4 @@ pub mod table_structure;
 
 //#[test]
 //fn it_works() {
-//    let df = FileExtension::read_excel("src/file_extension/developers.xlsx").unwrap();
-//    let mut table = Table::new();
-
-//    for row in df.rows.iter().as_ref(){
-//        let row_vec: Vec<String> = df.columns.iter()
-//        .map(|col| row.get(col).unwrap_or(&String::from("NaN")).to_string())
-//        .collect();
-//
-//        table.add_row(Row::new(row_vec.iter()
-//        .map(|f| Cell::new(f)).collect()));
-//
-//    }
-//    table.printstd()
-//}
 //}
