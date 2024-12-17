@@ -9,12 +9,44 @@
 // 90% FIXED ==> if any cell contains a long String or Integer this may cause in a readability mess
 // more dataframe improvements will be implemented soon
 
+use std::fmt::{self, Display, Formatter, Result};
+
 use super::DataFrame;
 use prettytable::{
     color,
     format::{self, Alignment},
     Attr, Cell, Row, Slice, Table,
 };
+
+#[derive(Debug, PartialEq)]
+struct Indentation {
+    indent: usize,
+}
+
+impl Indentation {
+    fn get_indentation(row_length: usize) -> Self {
+        /*a simple way to make the table size responsive manually
+        Note: the size of the table will be determined by the column's data length
+         => a parameter will be provided to set the indent of the table if there is a readability issue
+        there will be a more stable way to do this in the future. */
+        let mut indent: usize = 50;
+        let length = &row_length;
+        if *length >= 6 {
+            for i in 6..15 {
+                if *length >= i {
+                    indent -= 10
+                }
+            }
+        } else {
+            for i in 2..8 {
+                if *length <= i {
+                    indent += 5
+                }
+            }
+        }
+        Indentation { indent }
+    }
+}
 
 //A table design for csv and excel files
 pub fn design(df: DataFrame<String, String>) {
@@ -71,28 +103,24 @@ pub fn design(df: DataFrame<String, String>) {
         .indent(30)
         .build();
 
-    //a simple way to make the table size responsive manually
-    //Note: the size of the table will be determined by the column's data length
-    // => a parameter will be provided to set the indent of the table if there is a readability issue
-    //there will be a more stable way to do this in the future.
-    let mut indent = 50;
-    let length = &row_length;
-    if *length >= 6 {
-        for i in 6..15 {
-            if *length >= i {
-                indent -= 10
-            }
-        }
-    } else {
-        for i in 2..8 {
-            if *length <= i {
-                indent += 5
-            }
-        }
-    }
-    format.indent(indent);
+    let indentation = Indentation::get_indentation(row_length);
+    format.indent(indentation.indent);
 
     table.set_format(format);
     let slice = table.slice(..);
     slice.printstd()
 }
+/*
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let row_lenght: usize = 4;
+        let m = Indentation::get_indentation(row_lenght);
+        println!("here:\t{:?}", m);
+        // assert_eq!(m.get_indentation(), Some(Level::Normal))
+    }
+}
+*/
