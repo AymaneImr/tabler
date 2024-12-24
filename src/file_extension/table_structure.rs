@@ -9,6 +9,7 @@
 // 90% FIXED ==> if any cell contains a long String or Integer this may cause in a readability mess
 // more dataframe improvements will be implemented soon
 
+use core::slice;
 use std::fmt::{self, Display, Formatter, Result};
 
 use super::DataFrame;
@@ -49,7 +50,7 @@ impl Indentation {
 }
 
 //A table design for csv and excel files
-pub fn design(df: DataFrame<String, String>) {
+pub fn design(df: DataFrame<String, String>, rows: Option<usize>) {
     let mut table = Table::new();
 
     //column's style
@@ -107,8 +108,16 @@ pub fn design(df: DataFrame<String, String>) {
     format.indent(indentation.indent);
 
     table.set_format(format);
-    let slice = table.slice(..);
-    slice.printstd()
+
+    if let Some(row) = rows {
+        if table.len() > row {
+            let slice = table.slice(..row);
+            slice.printstd();
+        } else {
+            let slice = table.slice(..);
+            slice.printstd();
+        }
+    }
 }
 /*
 #[cfg(test)]

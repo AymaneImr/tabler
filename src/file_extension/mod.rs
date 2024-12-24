@@ -6,9 +6,11 @@ use serde_json::Value;
 use std::{
     collections::{HashMap, HashSet},
     error::Error,
+    ffi::OsStr,
     fmt::{Display, Formatter},
     fs::File,
     io::{self, BufReader},
+    path::PathBuf,
 };
 
 pub struct FileInfo {
@@ -85,19 +87,31 @@ type Results = Result<DataFrame<String, String>, FileError>;
 impl FileInfo {
     //improve error handling
     //get the file extension from the file name
-    pub fn get_file_extension(filename: &str) -> Result<FileInfo, FileError> {
-        let extension: Vec<_> = filename.split(".").collect();
-        match extension.last().unwrap().to_lowercase().as_str() {
-            "json" => Ok(FileInfo {
-                filename: filename.to_string(),
+
+    pub fn get_file_extension(filename: PathBuf) -> Result<FileInfo, FileError> {
+        match filename.extension().and_then(OsStr::to_str) {
+            Some("json") => Ok(FileInfo {
+                filename: filename
+                    .file_name()
+                    .and_then(OsStr::to_str)
+                    .map(|f| f.to_string())
+                    .unwrap(),
                 file_ext: FileExtension::Json,
             }),
-            "csv" => Ok(FileInfo {
-                filename: filename.to_string(),
+            Some("csv") => Ok(FileInfo {
+                filename: filename
+                    .file_name()
+                    .and_then(OsStr::to_str)
+                    .map(|f| f.to_string())
+                    .unwrap(),
                 file_ext: FileExtension::Csv,
             }),
-            "xlsx" | "xls" => Ok(FileInfo {
-                filename: filename.to_string(),
+            Some("xlsx") | Some("xls") => Ok(FileInfo {
+                filename: filename
+                    .file_name()
+                    .and_then(OsStr::to_str)
+                    .map(|f| f.to_string())
+                    .unwrap(),
                 file_ext: FileExtension::Excel,
             }),
             _other => Err(FileError::UnsupportedExt),
@@ -226,9 +240,9 @@ impl FileInfo {
 
     //TODO: improve error handling
     //read excel file
-    pub fn read_excel(&self) -> Results {
+    pub fn read_excel(&self, sheet_name: Option<String>) -> Results {
         let mut workbook: Xlsx<_> = open_workbook(&self.filename)?;
-        let range = workbook.worksheet_range("Sheet1")?;
+        let range = workbook.worksheet_range(&sheet_name.unwrap_or("Sheet1".to_string()))?;
 
         //if the there are no headers in sheet, default columns are provided "1", "2", "3" etc.
         //more improvements will be made in the future.
@@ -262,26 +276,25 @@ impl FileInfo {
     }
 
     //TODO: improve error handling
-    pub fn get_df(args: Vec<String>) -> Results {
-        let path = &args[1];
-        let relative_path = RelativePath::new(path).to_string();
-        let file_data = Self::get_file_extension(&relative_path)?;
+    pub fn get_df(path: PathBuf, sheet_name: Option<String>) -> Results {
+        let file_data = Self::get_file_extension(path)?;
         match file_data.file_ext {
             FileExtension::Csv => file_data.read_csv(),
             FileExtension::Json => file_data.read_json(),
-            FileExtension::Excel => file_data.read_excel(),
+            FileExtension::Excel => file_data.read_excel(sheet_name),
         }
     }
 }
 
 pub mod table_structure;
+/*
+#[cfg(test)]
+mod tests {
 
-//#[cfg(test)]
-//mod tests {
+    use std::{ffi::OsStr, path::Path, str::FromStr};
 
-//use super::*;
+    use super::*;
 
-//#[test]
-//fn it_works() {
-//}
-//}
+    #[test]
+    fn works() {}
+}*/
