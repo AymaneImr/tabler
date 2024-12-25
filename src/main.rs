@@ -4,10 +4,7 @@ use clap::error::ErrorKind;
 use clap::parser::MatchesError;
 use clap::{crate_authors, parser, value_parser, Arg, ArgAction, ArgMatches, Command};
 use relative_path::{RelativePath, RelativePathBuf};
-use std::env::current_dir;
 use std::path::{Path, PathBuf};
-use std::process::exit;
-use std::{env, process, usize};
 use table_structure::design;
 use tabler::file_extension::*;
 

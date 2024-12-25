@@ -9,9 +9,6 @@
 // 90% FIXED ==> if any cell contains a long String or Integer this may cause in a readability mess
 // more dataframe improvements will be implemented soon
 
-use core::slice;
-use std::fmt::{self, Display, Formatter, Result};
-
 use super::DataFrame;
 use prettytable::{
     color,
@@ -39,6 +36,7 @@ impl Indentation {
                 }
             }
         } else {
+            indent = 40;
             for i in 2..8 {
                 if *length <= i {
                     indent += 5
@@ -101,7 +99,6 @@ pub fn design(df: DataFrame<String, String>, rows: Option<usize>) {
             format::LineSeparator::new('=', '+', '+', '+'),
         )
         .padding(1, 1)
-        .indent(30)
         .build();
 
     let indentation = Indentation::get_indentation(row_length);
@@ -109,15 +106,20 @@ pub fn design(df: DataFrame<String, String>, rows: Option<usize>) {
 
     table.set_format(format);
 
+    let mut slice = table.slice(..);
     if let Some(row) = rows {
-        if table.len() > row {
-            let slice = table.slice(..row);
-            slice.printstd();
+        if table.len() >= row {
+            slice = table.slice(..row);
         } else {
-            let slice = table.slice(..);
-            slice.printstd();
+            println!(
+                "Requested {} rows, but only {} are available. Displaying all rows.",
+                row,
+                table.len(),
+            );
+            slice = table.slice(..)
         }
     }
+    slice.printstd();
 }
 /*
 #[cfg(test)]
