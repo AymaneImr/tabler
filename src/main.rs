@@ -34,8 +34,8 @@ fn arguments() -> ArgMatches {
         .author("Archon => https://github.com/AymaneImr")
         .version("0.1.0")
         .about("tabler is a terminal-based application to open and view structured data files like CSV, Excel, and JSON in a tabular format.")
-        .arg(Arg::new("filename")
-            .help("file")
+        .arg(Arg::new("PATH")
+            .help("Specify the file path")
             .value_parser(value_parser!(PathBuf))
             .required(true))
         .arg(
@@ -48,10 +48,34 @@ fn arguments() -> ArgMatches {
                 .help("Specify the number of rows to display"),
         )
         .arg(
+            Arg::new("default-rows")
+                .short('d')
+                .long("default-rows")
+                .alias("default")
+                .conflicts_with("rows")
+                .action(ArgAction::SetTrue)
+                .help("Sets the number of rows to `200`")
+        )
+        .arg(
+            Arg::new("indentation")
+                .short('i')
+                .long("indent")
+                .action(ArgAction::SetTrue)
+                .help("Sets the Indentation level to `0`. This is recommended for long table width")
+        )/*
+        .arg(
+            Arg::new("columns")
+                .conflicts_with("nested-json")
+                .action(ArgAction::Append)
+                .value_parser(value_parser!(String))
+                .help("Specify the columns to be displayed")
+        )*/
+        .arg(
             Arg::new("sheet-name")
                 .short('s')
                 .long("sheet")
                 .action(ArgAction::Set)
+                .conflicts_with("nested-json")
                 .value_parser(value_parser!(String))
                 .help("Specify sheet name ('Sheet1' is set as the default)"),
         )
@@ -62,12 +86,21 @@ fn arguments() -> ArgMatches {
                 .action(ArgAction::SetTrue)
                 .help("Recommended format for nested json structure"),
         )
+        .subcommand(
+            Command::new("columns")
+                .arg(
+                     Arg::new("columns")
+                          .action(ArgAction::Append)
+                          .value_parser(value_parser!(String))
+                          .help("Specify the columns to be displayed")
+                )
+        )
         .get_matches()
 }
 
 fn parse_args(args: ArgMatches) -> Args {
     let mut file_path: PathBuf = PathBuf::new();
-    if let Some(path) = args.get_one::<PathBuf>("filename") {
+    if let Some(path) = args.get_one::<PathBuf>("PATH") {
         file_path = path.to_path_buf()
     }
     let mut rows: Option<usize> = args.get_one::<usize>("rows").map(|f| f.to_owned() as usize);
