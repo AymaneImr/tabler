@@ -14,7 +14,7 @@ use std::{
 };
 
 pub struct FileInfo {
-    pub filename: String,
+    pub file_path: PathBuf,
     pub file_ext: FileExtension,
 }
 
@@ -91,27 +91,15 @@ impl FileInfo {
     pub fn get_file_extension(filename: PathBuf) -> Result<FileInfo, FileError> {
         match filename.extension().and_then(OsStr::to_str) {
             Some("json") => Ok(FileInfo {
-                filename: filename
-                    .file_name()
-                    .and_then(OsStr::to_str)
-                    .map(|f| f.to_string())
-                    .unwrap(),
+                file_path: filename,
                 file_ext: FileExtension::Json,
             }),
             Some("csv") => Ok(FileInfo {
-                filename: filename
-                    .file_name()
-                    .and_then(OsStr::to_str)
-                    .map(|f| f.to_string())
-                    .unwrap(),
+                file_path: filename,
                 file_ext: FileExtension::Csv,
             }),
             Some("xlsx") | Some("xls") => Ok(FileInfo {
-                filename: filename
-                    .file_name()
-                    .and_then(OsStr::to_str)
-                    .map(|f| f.to_string())
-                    .unwrap(),
+                file_path: filename,
                 file_ext: FileExtension::Excel,
             }),
             _other => Err(FileError::UnsupportedExt),
@@ -155,7 +143,7 @@ impl FileInfo {
     //TODO: improve error handling
     //read csv files
     pub fn read_csv(&self) -> Results {
-        let file = File::open(&self.filename)?;
+        let file = File::open(&self.file_path)?;
         let mut reader: Reader<BufReader<File>> = ReaderBuilder::new()
             .has_headers(true)
             .from_reader(BufReader::new(file));
@@ -163,7 +151,7 @@ impl FileInfo {
 
         //store the columns
         if let Ok(headers) = reader.headers() {
-            columns = headers.iter().map(|col| col.to_string()).collect();
+            columns = headers.iter().map(|col| col.trim().to_string()).collect();
         }
 
         //store the rows
@@ -194,7 +182,7 @@ impl FileInfo {
     // there will many improvements in the future.
     //read json file
     pub fn read_json(&self) -> Results {
-        let file = File::open(&self.filename)?;
+        let file = File::open(&self.file_path)?;
         let content = serde_json::from_reader(file)?;
         let mut rows: Vec<HashMap<String, String>> = Vec::new();
 
@@ -241,14 +229,14 @@ impl FileInfo {
     //TODO: improve error handling
     //read excel file
     pub fn read_excel(&self, sheet_name: Option<String>) -> Results {
-        let mut workbook: Xlsx<_> = open_workbook(&self.filename)?;
+        let mut workbook: Xlsx<_> = open_workbook(&self.file_path)?;
         let range = workbook.worksheet_range(&sheet_name.unwrap_or("Sheet1".to_string()))?;
 
         //if the there are no headers in sheet, default columns are provided "1", "2", "3" etc.
         //more improvements will be made in the future.
         let mut columns: Vec<String> = Vec::new();
         if let Some(col) = range.headers() {
-            columns = col
+            columns = col.iter().map(|f| f.trim().to_string()).collect()
         }
 
         let mut rows: Vec<HashMap<String, String>> = Vec::new();

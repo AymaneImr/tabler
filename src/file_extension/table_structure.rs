@@ -9,6 +9,8 @@
 // 90% FIXED ==> if any cell contains a long String or Integer this may cause in a readability mess
 // more dataframe improvements will be implemented soon
 
+use std::default;
+
 use super::DataFrame;
 use prettytable::{
     color,
@@ -22,14 +24,17 @@ struct Indentation {
 }
 
 impl Indentation {
-    fn get_indentation(row_length: usize) -> Self {
+    fn get_indentation(row_length: usize, indentation: bool) -> Self {
         /*a simple way to make the table size responsive manually
         Note: the size of the table will be determined by the column's data length
          => a parameter will be provided to set the indent of the table if there is a readability issue
         there will be a more stable way to do this in the future. */
         let mut indent: usize = 50;
+
         let length = &row_length;
-        if *length >= 6 {
+        if indentation {
+            indent = 0
+        } else if *length >= 6 {
             for i in 6..15 {
                 if *length >= i {
                     indent -= 10
@@ -48,7 +53,12 @@ impl Indentation {
 }
 
 //A table design for csv and excel files
-pub fn design(df: DataFrame<String, String>, rows: Option<usize>) {
+pub fn design(
+    df: DataFrame<String, String>,
+    rows: Option<usize>,
+    default_rows: bool,
+    indent: bool,
+) {
     let mut table = Table::new();
 
     //column's style
@@ -101,12 +111,16 @@ pub fn design(df: DataFrame<String, String>, rows: Option<usize>) {
         .padding(1, 1)
         .build();
 
-    let indentation = Indentation::get_indentation(row_length);
+    let indentation = Indentation::get_indentation(row_length, indent);
     format.indent(indentation.indent);
 
     table.set_format(format);
 
-    let mut slice = table.slice(..);
+    let mut slice = if default_rows && table.len() >= 200 {
+        table.slice(..200)
+    } else {
+        table.slice(..)
+    };
     if let Some(row) = rows {
         if table.len() >= row {
             slice = table.slice(..row);
@@ -127,11 +141,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
-        let row_lenght: usize = 4;
-        let m = Indentation::get_indentation(row_lenght);
-        println!("here:\t{:?}", m);
-        // assert_eq!(m.get_indentation(), Some(Level::Normal))
+    fn works() {
+
     }
-}
-*/
+}*/
