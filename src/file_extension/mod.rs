@@ -186,44 +186,59 @@ impl FileInfo {
         let content = serde_json::from_reader(file)?;
         let mut rows: Vec<HashMap<String, String>> = Vec::new();
 
-        //i hate working with recursive
-        fn iterate(value: &Value, prefix: String, rows: &mut Vec<HashMap<String, String>>) {
-            match value {
-                Value::Object(map) => {
-                    for (key, val) in map {
-                        if prefix.is_empty() {
-                            iterate(val, key.to_string(), rows);
-                        } else {
-                            iterate(val, format!("{}.{}", prefix, key), rows);
-                        }
-                    }
-                }
-                Value::Array(arr) => {
-                    for val in arr.iter() {
-                        iterate(val, prefix.to_string(), rows);
-                    }
-                }
+        let mut columns: HashSet<String> = HashSet::new();
 
-                _ => {
+        if let Value::Array(array) = content {
+            for item in array {
+                if let Value::Object(map) = item {
                     let mut row_map: HashMap<String, String> = HashMap::new();
-                    row_map.insert(prefix, value.to_string());
+                    for (key, value) in map {
+                        columns.insert(key.clone());
+                        row_map.insert(key, value.to_string());
+                    }
                     rows.push(row_map);
                 }
             }
         }
-        iterate(&content, String::new(), &mut rows);
-        let columns: Vec<String> = rows
-            .iter()
-            .flat_map(|column| column.keys().cloned())
-            .collect::<HashSet<String>>()
-            .into_iter()
-            .collect::<Vec<String>>();
+
+        let columns: Vec<String> = columns.into_iter().collect();
 
         if !rows.is_empty() {
             Ok(DataFrame { columns, rows })
         } else {
             Err(FileError::EmptyFile)
         }
+    }
+
+    pub fn read_nested_json(file_path: PathBuf) -> Result<(), FileError> {
+        let file = File::open(file_path)?;
+        let content = serde_json::from_reader(file)?;
+
+        fn print_json_tree(value: &Value, indent: usize) {
+            let prefix = " ".repeat(indent);
+
+            match value {
+                Value::Object(map) => {
+                    for (key, val) in map {
+                        println!("{}├── {}:", prefix, key);
+                        print_json_tree(val, indent + 4);
+                    }
+                }
+                Value::Array(arr) => {
+                    for (index, val) in arr.iter().enumerate() {
+                        println!("{}├── [{}]", prefix, index);
+                        print_json_tree(val, indent + 4);
+                    }
+                }
+                Value::String(str) => println!("{}└── \"{}\"", prefix, str),
+                Value::Number(num) => println!("{}└── {}", prefix, num),
+                Value::Bool(bol) => println!("{}└── {}", prefix, bol),
+                Value::Null => println!("{}└── null", prefix),
+            }
+        }
+
+        print_json_tree(&content, 6);
+        Ok(())
     }
 
     //TODO: improve error handling
@@ -275,7 +290,7 @@ impl FileInfo {
 }
 
 pub mod table_structure;
-/*
+
 #[cfg(test)]
 mod tests {
 
@@ -285,4 +300,4 @@ mod tests {
 
     #[test]
     fn works() {}
-}*/
+}

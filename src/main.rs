@@ -25,43 +25,25 @@ fn main() {
     let args = arguments();
     let parsed_args = parse_args(args);
 
-    let df = FileInfo::get_df(parsed_args.file_path, parsed_args.sheet_name);
-    match df {
-        Ok(mut df) => {
-            df.columns = match parsed_args.columns {
-                Some(col) => {
-                    let mut new_columns: Vec<String> = Vec::new();
-                    let mut misspelled_columns: Vec<String> = Vec::new();
-
-                    for c in col {
-                        if df.columns.contains(&c) {
-                            new_columns.push(c);
-                        } else {
-                            misspelled_columns.push(c);
-                        }
-                    }
-                    if !misspelled_columns.is_empty() {
-                        eprintln!(
-                            "Oops you have misspelled these columns names: {:?}",
-                            misspelled_columns
-                        )
-                    }
-                    if !new_columns.is_empty() {
-                        new_columns
-                    } else {
-                        df.columns
-                    }
-                }
-                _ => df.columns,
-            };
-            design(
-                df,
-                parsed_args.rows,
-                parsed_args.default_rows,
-                parsed_args.indent,
-            );
+    if parsed_args.nested_json {
+        match FileInfo::read_nested_json(parsed_args.file_path) {
+            Ok(()) => (),
+            Err(err) => eprintln!("{err}"),
         }
-        Err(er) => eprintln!("{er} "),
+    } else {
+        let df = FileInfo::get_df(parsed_args.file_path, parsed_args.sheet_name);
+        match df {
+            Ok(mut df) => {
+                df.columns = requested_columns(&df, parsed_args.columns);
+                design(
+                    df,
+                    parsed_args.rows,
+                    parsed_args.default_rows,
+                    parsed_args.indent,
+                );
+            }
+            Err(er) => eprintln!("{er} "),
+        }
     }
 }
 
@@ -162,5 +144,34 @@ fn parse_args(args: ArgMatches) -> Args {
         columns,
         default_rows,
         indent,
+    }
+}
+
+fn requested_columns(df: &DataFrame<String, String>, columns: Option<Vec<String>>) -> Vec<String> {
+    match columns {
+        Some(col) => {
+            let mut new_columns: Vec<String> = Vec::new();
+            let mut misspelled_columns: Vec<String> = Vec::new();
+
+            for c in col {
+                if df.columns.contains(&c) {
+                    new_columns.push(c);
+                } else {
+                    misspelled_columns.push(c);
+                }
+            }
+            if !misspelled_columns.is_empty() {
+                eprintln!(
+                    "Oops you have misspelled these columns names: {:?}",
+                    misspelled_columns
+                )
+            }
+            if !new_columns.is_empty() {
+                new_columns
+            } else {
+                df.columns.clone()
+            }
+        }
+        _ => df.columns.clone(),
     }
 }
