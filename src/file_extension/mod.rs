@@ -1,5 +1,6 @@
 #![allow(unused)]
 use calamine::{open_workbook, Reader as red, Xlsx};
+use colored::*;
 use csv::{Reader, ReaderBuilder, StringRecord};
 use relative_path::RelativePath;
 use serde_json::Value;
@@ -176,10 +177,6 @@ impl FileInfo {
     }
 
     //TODO: improve error handling
-    // Note: This function is not implemented well yet
-    // the formatted structure and the fields parsing currently is messy
-    // and does not follow the best practices
-    // there will many improvements in the future.
     //read json file
     pub fn read_json(&self) -> Results {
         let file = File::open(&self.file_path)?;
@@ -210,6 +207,7 @@ impl FileInfo {
         }
     }
 
+    // read nested json files and display it in a styled colored tree format
     pub fn read_nested_json(file_path: PathBuf) -> Result<(), FileError> {
         let file = File::open(file_path)?;
         let content = serde_json::from_reader(file)?;
@@ -220,24 +218,24 @@ impl FileInfo {
             match value {
                 Value::Object(map) => {
                     for (key, val) in map {
-                        println!("{}├── {}:", prefix, key);
+                        println!("{}{}:", prefix, key.cyan().bold());
                         print_json_tree(val, indent + 4);
                     }
                 }
                 Value::Array(arr) => {
-                    for (index, val) in arr.iter().enumerate() {
-                        println!("{}├── [{}]", prefix, index);
+                    for (i, val) in arr.iter().enumerate() {
+                        println!("{}[{}]:", prefix, (i + 1).to_string().yellow());
                         print_json_tree(val, indent + 4);
                     }
                 }
-                Value::String(str) => println!("{}└── \"{}\"", prefix, str),
-                Value::Number(num) => println!("{}└── {}", prefix, num),
-                Value::Bool(bol) => println!("{}└── {}", prefix, bol),
-                Value::Null => println!("{}└── null", prefix),
+                Value::String(s) => println!("{}└── {}", prefix, format!("\"{}\"", s).green()),
+                Value::Number(num) => println!("{}└── {}", prefix, num.to_string().yellow()),
+                Value::Bool(b) => println!("{}└── {}", prefix, b.to_string().red()),
+                Value::Null => println!("{}└── {}", prefix, "null".red()),
             }
         }
 
-        print_json_tree(&content, 6);
+        print_json_tree(&content, 4);
         Ok(())
     }
 
